@@ -34,7 +34,7 @@ class TempestService < ServiceObject
 
     hash = base.config_hash
 
-    nodes = NodeObject.find("roles:nova-multi-controller")
+    nodes = Node.find_by_role_name("nova-multi-controller")
     nodes.delete_if { |n| n.nil? or n.admin? }
     unless nodes.empty?
       hash["tempest"]["elements"] = {
@@ -70,7 +70,7 @@ class TempestService < ServiceObject
     return if all_nodes.empty?
 
     # Update tempest_tarball path
-    nodes = NodeObject.find("roles:provisioner-server")
+    nodes = Node.find_by_role_name("provisioner-server")
     unless nodes.nil? or nodes.length < 1
       admin_ip = nodes[0].get_network_by_type("admin")["address"]
       web_port = nodes[0]["provisioner"]["web_port"]
@@ -94,12 +94,12 @@ class TempestService < ServiceObject
   end
 
   def self.get_all_nodes_hash
-    Hash[ NodeObject.find_all_nodes.map {|n| [n.name, n]} ]
+    Hash[ Node.all.map {|n| [n.name, n]} ]
   end
 
   def get_ready_nodes
     nodes = get_ready_proposals.collect { |p| p.elements[@bc_name] }.flatten
-    NodeObject.find_all_nodes.select { |n| nodes.include?(n.name) and n.ready? }
+    Node.all.select { |n| nodes.include?(n.name) and n.ready? }
   end
 
   def get_ready_proposals
