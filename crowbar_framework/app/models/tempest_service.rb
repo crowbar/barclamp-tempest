@@ -110,7 +110,7 @@ class TempestService < ServiceObject
     db = ProposalObject.find_data_bag_item "crowbar/#{@bc_name}"
     if db.nil?
       begin
-        lock = acquire_lock @bc_name
+        lock = CrowbarUtils.acquire_lock @bc_name
       
         db_item = Chef::DataBagItem.new
         db_item.data_bag "crowbar"
@@ -119,7 +119,7 @@ class TempestService < ServiceObject
         db = ProposalObject.new db_item
         db.save
       ensure
-        release_lock lock
+        CrowbarUtils.release_lock lock
       end
     end
     db
@@ -164,9 +164,9 @@ class TempestService < ServiceObject
       true
     end
 
-    lock = acquire_lock(@bc_name)
+    lock = CrowbarUtils.acquire_lock(@bc_name)
     tempest_db.save
-    release_lock(lock)
+    CrowbarUtils.release_lock(lock)
   end
 
   def run_test(node)
@@ -184,10 +184,10 @@ class TempestService < ServiceObject
       raise ServiceError, I18n.t("barclamp.#{@bc_name}.run.duplicate") if tr['node'] == node and tr['status'] == 'running'
     end
 
-    lock = acquire_lock(@bc_name)
+    lock = CrowbarUtils.acquire_lock(@bc_name)
     tempest_db['test_runs'] << test_run
     tempest_db.save
-    release_lock(lock)
+    CrowbarUtils.release_lock(lock)
 
     proposal_path = proposal['attributes'][@bc_name]['tempest_path']
 
@@ -200,9 +200,9 @@ class TempestService < ServiceObject
       test_run['status'] = $?.exitstatus.equal?(0) ? 'passed' : 'failed'
       test_run['pid'] = nil
       
-      lock = acquire_lock(@bc_name)
+      lock = CrowbarUtils.acquire_lock(@bc_name)
       tempest_db.save
-      release_lock(lock)
+      CrowbarUtils.release_lock(lock)
 
       @logger.info("test run #{test_run['uuid']} complete, status '#{test_run['status']}'")
     end
@@ -210,9 +210,9 @@ class TempestService < ServiceObject
 
     # saving the PID to prevent 
     test_run['pid'] = pid
-    lock = acquire_lock(@bc_name)
+    lock = CrowbarUtils.acquire_lock(@bc_name)
     tempest_db.save
-    release_lock(lock)
+    CrowbarUtils.release_lock(lock)
     test_run
   end
 
