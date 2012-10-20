@@ -34,7 +34,9 @@ crowbar:
   chef_order: 99
 
 debs:
-#Assuming that packages for ubuntu 12.04 only used
+  ubuntu-12.04:
+    repos:
+      - deb http://ubuntu-cloud.archive.canonical.com/ubuntu precise-updates/folsom main
   pkgs:
     - python-unittest2
     - python-nose
