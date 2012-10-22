@@ -26,10 +26,10 @@ class TempestService < ServiceObject
     answer
   end
 
-  def create_proposal
+  def create_proposal(name)
     # TODO: ensure that only one proposal can be applied to a node
     @logger.debug("Tempest create_proposal: entering")
-    base = super
+    base = super(name)
     @logger.debug("Tempest create_proposal: leaving base part")
 
     hash = base.config_hash
