@@ -103,5 +103,5 @@ debs:
     - glance-client
 
 extra_files:
-  - http://launchpad.net/cirros/trunk/0.3.0/+download/cirros-0.3.0-x86_64-uec.tar.gz tempest
+  - https://launchpad.net/cirros/trunk/0.3.0/+download/cirros-0.3.0-x86_64-uec.tar.gz tempest
   - https://github.com/openstack/tempest/tarball/stable/folsom.tar.gz tempest
