@@ -1,0 +1,19 @@
+{
+    "type": "map",
+    "required": true,
+    "mapping": {
+        "tempest": {
+            "type": "map",
+            "required": true,
+            "mapping": {
+                "tempest_tarball": { "type": "str", "required": true },
+                "nova_instance": { "type": "str", "required": true },
+                "tempest_user_password": { "type": "str", "required": true },
+                "tempest_user_username": { "type": "str", "required": true },
+                "tempest_user_tenant": { "type": "str", "required": true },
+                "tempest_test_image": { "type": "str", "required": true },
+                "tempest_path" : {"type": "str", "required": true }
+            }
+        }
+    }
+}

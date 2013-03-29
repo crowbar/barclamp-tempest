@@ -12,6 +12,9 @@
       "tempest_path": "/opt/tempest"
     }
   },
+    "roles": {
+        "tempest": { "jig": "chef" }
+    },
   "deployment": {
     "tempest": {
       "crowbar-revision": 0,
