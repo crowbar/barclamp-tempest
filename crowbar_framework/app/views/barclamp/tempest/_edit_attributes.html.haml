@@ -11,9 +11,6 @@
       %label{ :for => :use_virtualenv }= t('.use_virtualenv')
       = select_tag :use_virtualenv, options_for_select([['yes','true'], ['no', 'false']], @proposal.raw_data['attributes'][@proposal.barclamp]["use_virtualenv"].to_s), :onchange => "update_value('use_virtualenv', 'use_virtualenv', 'boolean')"
     %p
-      %label{ :for => :use_pfs }= t('.use_pfs')
-      = select_tag :use_pfs, options_for_select([['yes','true'], ['no', 'false']], @proposal.raw_data['attributes'][@proposal.barclamp]["use_pfs"].to_s), :onchange => "update_value('use_virtualenv', 'use_pfs', 'boolean')"
-    %p
       %label{:for => "tempest_user"}= t('.tempest_user')
     %p
       %label{ :for => :tempest_user_username }= t('.tempest_user_username')
@@ -27,3 +24,6 @@
     %p
       %label{ :for => :tempest_adm_password }= t('.tempest_adm_password')
       %input#tempest_adm_password{:type => "password", :name => "tempest_adm_password", :'data-default' => @proposal.raw_data['attributes'][@proposal.barclamp]["tempest_adm_password"], :onchange => "update_value('tempest_adm_password','tempest_adm_password', 'string')"}
+    %p
+      %label{ :for => :use_pfs }= t('.use_pfs')
+      = select_tag :use_pfs, options_for_select([['yes','true'], ['no', 'false']], @proposal.raw_data['attributes'][@proposal.barclamp]["use_pfs"].to_s), :onchange => "update_value('use_pfs', 'use_pfs', 'boolean')"
