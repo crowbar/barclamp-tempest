@@ -80,6 +80,38 @@ glance_port = glance[:glance][:api][:bind_port]
 flavor_ref = "6"
 alt_flavor_ref = "7"
 
+quantums = search(:node, "roles:quantum-server AND roles:quantum-config-#{nova[:nova][:quantum_instance]}") || []
+if quantums.length > 0
+  quantum = quantums.first
+  if quantum[:quantum][:networking_plugin] == "openvswitch"
+    openvswitch = true
+    quantum_args = "--os-username #{quantum[:quantum][:service_user]}"
+    quantum_args = "#{quantum_args} --os-password #{quantum[:quantum][:service_password]}"
+    quantum_args = "#{quantum_args} --os-tenant-name #{keystone[:keystone][:service][:tenant]}"
+    quantum_args = "#{quantum_args} --os-auth-url #{keystone["keystone"]["api"]["protocol"]}://#{keystone_address}:#{keystone_port}/v2.0/"
+    quantum_cmd = "quantum #{quantum_args}"
+    ruby_block "get_public_router" do
+      block do
+        require 'csv'
+        require 'json'
+        csv_data = `#{quantum_cmd} router-list  --field id --field external_gateway_info --format csv`
+        output = CSV.parse(csv_data)[1]
+        Chef::Log.info(output)
+        node.set[:quantum][:router_id] = output[0]
+        node.set[:quantum][:external_network_id] = JSON.parse(output[1])["network_id"]
+        node.save
+      end
+    end
+  else
+    openvswitch = nil
+  end
+else
+  quantum = nil
+  openvswitch = nil
+  node.set[:quantum][:router_id] = nil
+  node.set[:quantum][:external_network_id] = nil
+end
+
 keystone_register "tempest tempest wakeup keystone" do
   host keystone_address
   port keystone_admin_port
@@ -220,7 +252,11 @@ template "#{node[:tempest][:tempest_path]}/etc/tempest.conf" do
     :img_tenant => tempest_comp_tenant,
     :comp_admin_user => comp_admin_user,
     :comp_admin_pass => comp_admin_pass,
-    :comp_admin_tenant => comp_admin_tenant 
+    :comp_admin_tenant => comp_admin_tenant,
+    :quantum => quantum,
+    :openvswitch => openvswitch,
+    :router_id => node[:quantum][:router_id],
+    :external_network_id => node[:quantum][:external_network_id]
   )
 end
 
