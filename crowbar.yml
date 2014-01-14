@@ -127,6 +127,9 @@ debs:
       - python-keyring
       - python-testrepository
       - python-oslo.config
+      - libxslt1-dev
+      - euca2ools
+      - git
 
 rpms:
   centos-6.4:
@@ -152,6 +155,9 @@ rpms:
     - python-keyring
     - python-testrepository
     - python-oslo.config
+    - libxslt-devel
+    - git
+    - euca2ools
 
 pips:
   - pbr>=0.5.21,<1.0
@@ -175,9 +181,10 @@ pips:
   - testrepository>=0.0.17
   - oslo.config>=1.2.0
   - eventlet>=0.13.0
-  - six<1.4.0
+  - six>=1.4.1
   - iso8601>=0.1.4
   - fixtures>=0.3.14
+  - argparse
 
 extra_files:
   - http://launchpad.net/cirros/trunk/0.3.0/+download/cirros-0.3.0-x86_64-uec.tar.gz tempest
