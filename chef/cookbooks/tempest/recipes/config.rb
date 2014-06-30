@@ -77,9 +77,9 @@ keystone_register "tempest tempest wakeup keystone" do
   port keystone_settings['admin_port']
   token keystone_settings['admin_token']
   action :wakeup
-end.run_action(:wakeup)
+end
 
-keystone_register "create tenant #{tempest_comp_tenant} for tempest" do
+keystone_register "create_tenant_for_tempest" do
   protocol keystone_settings['protocol']
   host keystone_settings['internal_url_host']
   port keystone_settings['admin_port']
@@ -87,7 +87,7 @@ keystone_register "create tenant #{tempest_comp_tenant} for tempest" do
 
   tenant_name tempest_comp_tenant
   action :add_tenant
-end.run_action(:add_tenant)
+end
 
 users = [
           {'name' => tempest_comp_user, 'pass' => tempest_comp_pass, 'role' => 'Member'},
@@ -103,8 +103,8 @@ users.each do |user|
     user_name user["name"]
     user_password user["pass"]
     tenant_name tempest_comp_tenant
-    action :nothing
-  end.run_action(:add_user)
+    action :add_user
+  end
 
   keystone_register "add #{user["name"]}:#{tempest_comp_tenant} user #{user["role"]} role" do
     protocol keystone_settings['protocol']
@@ -114,8 +114,8 @@ users.each do |user|
     user_name user["name"]
     role_name user["role"]
     tenant_name tempest_comp_tenant
-    action :nothing
-  end.run_action(:add_access)
+    action :add_access
+  end
 
   keystone_register "add default ec2 creds for #{user["name"]}:#{tempest_comp_tenant}" do
     protocol keystone_settings['protocol']
@@ -128,9 +128,8 @@ users.each do |user|
     })
     user_name user["name"]
     tenant_name tempest_comp_tenant
-    action :nothing
-  end.run_action(:add_ec2)
-
+    action :add_ec2
+  end
 end
 
 # Give admin user access to tempest tenant
@@ -142,8 +141,8 @@ keystone_register "add #{keystone_settings['admin_user']}:#{tempest_comp_tenant}
   user_name keystone_settings['admin_user']
   role_name "admin"
   tenant_name tempest_comp_tenant
-  action :nothing
-end.run_action(:add_access)
+  action :add_access
+end
 
 directory "#{node[:tempest][:tempest_path]}" do
   action :create
@@ -254,6 +253,7 @@ end
 
 swifts = search(:node, "roles:swift-proxy") || []
 heats = search(:node, "roles:heat-server") || []
+cinders = search(:node, "roles:cinder-controller") || []
 ceilometers = search(:node, "roles:ceilometer-server") || []
 horizons = search(:node, "roles:nova_dashboard-server") || []
 
@@ -296,6 +296,7 @@ template "#{tempest_conf}" do
     :machine_id_file => machine_id_file,
     :nova_host => nova.name,
     :public_network_id => public_network_id,
+    :storage_protocol => cinders[0][:cinder][:volume][:volume_type] == "rbd" ? "ceph" : "iSCSI",
     :tempest_path => node[:tempest][:tempest_path],
     :use_heat => !heats.empty?,
     :use_ceilometer => !ceilometers.empty?,
@@ -305,8 +306,6 @@ template "#{tempest_conf}" do
     :use_swift => !swifts.empty?
   )
 end
-
-nosetests = "/opt/tempest/.venv/bin/nosetests"
 
 
 ["#{node[:tempest][:tempest_path]}/bin/tempest_smoketest.sh",
@@ -325,7 +324,7 @@ nosetests = "/opt/tempest/.venv/bin/nosetests"
       :key_host => keystone_address,
       :key_port => keystone_port,
       :keystone_settings => keystone_settings,
-      :nosetests => nosetests,
+      :nosetests => "/opt/tempest/.venv/bin/nosetests",
       :tempest_path => node[:tempest][:tempest_path]
     )
   end
