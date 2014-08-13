@@ -56,7 +56,7 @@ keystone_address = Chef::Recipe::Barclamp::Inventory.get_network_by_type(keyston
 keystone_token = keystone[:keystone][:service][:token]
 keystone_admin_port = keystone[:keystone][:api][:admin_port]
 
-keystone_settings = KeystoneHelper.keystone_settings(node, @cookbook_name)
+keystone_settings = KeystoneHelper.keystone_settings(nova, "nova")
 
 env_filter = " AND glance_config_environment:glance-config-#{nova[:nova][:glance_instance]}"
 
