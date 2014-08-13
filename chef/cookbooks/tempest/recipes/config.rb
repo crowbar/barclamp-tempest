@@ -217,9 +217,13 @@ echo -n "Adding image ... "
 MACHINE_ID=$(glance_it add --silent-upload name="$IMG_NAME-tempest-machine" is_public=true container_format=ami disk_format=ami kernel_id=$KERNEL_ID ramdisk_id=$RAMDISK_ID < $(findfirst '*.img') | extract_id)
 echo "done."
 
-echo -n "Saving machine id ..."
-echo $MACHINE_ID > #{machine_id_file}
-echo "done."
+if test -n "$MACHINE_ID"; then
+  echo -n "Saving machine id ..."
+  echo $MACHINE_ID > #{machine_id_file}
+  echo "done."
+else
+  echo "Upload failed!"
+fi
 
 rm -rf $TEMP
 
