@@ -366,9 +366,11 @@ EOH
   end
 
   use_docker = true
+  use_interface_attach = false
   use_rescue = false
 else
   use_docker = false
+  use_interface_attach = true
   use_rescue = true
 end
 
@@ -418,6 +420,7 @@ template "#{tempest_conf}" do
     :flavor_ref => flavor_ref,
     :alt_flavor_ref => alt_flavor_ref,
     :nova_api_v3 => nova[:nova][:enable_v3_api],
+    :use_interface_attach => use_interface_attach,
     :use_rescue => use_rescue,
     :use_resize => use_resize,
     :use_livemigration => use_livemigration,
