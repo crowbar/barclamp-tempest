@@ -97,7 +97,7 @@ class TempestService < ServiceObject
     # Allocate a public IP, tempest needs it
     net_svc = NetworkService.new @logger
     all_nodes.each do |n|
-      net_svc.allocate_ip "default", "public", "host", n
+      net_svc.allocate_ip "default", "floating", "host", n
     end
 
     @logger.debug("Tempest apply_role_pre_chef_call: leaving")
