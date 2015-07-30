@@ -358,6 +358,7 @@ DOCKER_IMAGE_ID=$(glance #{insecure} image-list \
     --page-size 1 \
     2> /dev/null | tail -n 2 | head -n 1 | awk '{ print $2 }')
 [ -n "$DOCKER_IMAGE_ID" ] && echo "$DOCKER_IMAGE_ID" > #{docker_image_id_file}
+true
 EOH
     environment ({
       'OS_USERNAME' => tempest_adm_user,
