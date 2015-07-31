@@ -348,6 +348,8 @@ use_livemigration = nova[:nova][:use_migration] && kvm_compute_nodes.length > 1
 
 if !docker_compute_nodes.empty? && kvm_compute_nodes.empty?
   image_name = "cirros"
+  docker_nodes = docker_compute_nodes.map {|n| n.name}
+  docker_node = docker_nodes.first
 
   bash "find tempest test image for docker" do
     code <<-EOH
@@ -357,7 +359,23 @@ DOCKER_IMAGE_ID=$(glance #{insecure} image-list \
     --is-public True \
     --page-size 1 \
     2> /dev/null | tail -n 2 | head -n 1 | awk '{ print $2 }')
-[ -n "$DOCKER_IMAGE_ID" ] && echo "$DOCKER_IMAGE_ID" > #{docker_image_id_file}
+if [ -n "$DOCKER_IMAGE_ID" ] ; then
+  echo "$DOCKER_IMAGE_ID" > #{docker_image_id_file}
+else
+  for node in #{docker_nodes.join(" ")}; do
+      ssh $node docker pull cirros
+  done
+  ssh #{docker_node} docker save -o cirros.tar cirros
+  scp #{docker_node}:cirros.tar .
+  DOCKER_IMAGE_ID=$(glance #{insecure} image-create --name #{image_name} \
+      --container-format docker \
+      --disk-format raw --property hypervisor_type=docker \
+      --is-public True  \
+      --file cirros.tar \
+      | grep ' id ' | awk '{ print $4 }')
+  echo "$DOCKER_IMAGE_ID" > #{docker_image_id_file}
+fi
+
 EOH
     environment ({
       'OS_USERNAME' => tempest_adm_user,
