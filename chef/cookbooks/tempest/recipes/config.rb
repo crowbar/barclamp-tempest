@@ -359,13 +359,6 @@ IMG_FILE=$(basename $IMAGE_URL)
 echo "Downloading image ... "
 wget --no-verbose $IMAGE_URL --directory-prefix=$TEMP 2>&1 || exit $?
 
-echo "Deploying image in docker nodes ... "
-for node in $NODES ; do
-  scp $TEMP/$IMG_FILE $node:/tmp
-  ssh $node docker load --input=/tmp/$IMG_FILE
-  ssh $node rm /tmp/$IMG_FILE
-done
-
 echo "Registering in glance ..."
 DOCKER_IMAGE_ID=$(glance #{insecure} image-create \
     --name #{image_name} \
