@@ -133,10 +133,13 @@ end.run_action(:add_access)
 end
 
 machine_id_file = node[:tempest][:tempest_path] + '/machine.id'
+docker_image_id_file = node[:tempest][:tempest_path] + '/docker_machine.id'
 heat_machine_id_file = node[:tempest][:tempest_path] + '/heat_machine.id'
 
 glance_node = search(:node, "roles:glance-server").first
 insecure = "--insecure"
+
+cirros_version = File.basename(node[:tempest][:tempest_test_image]).gsub(/^cirros-/, "").gsub(/-.*/, "")
 
 bash "upload tempest test image" do
   code <<-EOH
@@ -337,9 +340,73 @@ if backend_names.length > 1
   cinder_backend2_name = backend_names[1]
 end
 
-compute_nodes = search(:node, "roles:nova-multi-compute-kvm") || []
-use_resize = compute_nodes.length > 1
-use_livemigration = nova[:nova][:use_migration] && compute_nodes.length > 1
+kvm_compute_nodes = search(:node, "roles:nova-multi-compute-kvm") || []
+docker_compute_nodes = search(:node, "roles:nova-multi-compute-docker") || []
+
+use_resize = kvm_compute_nodes.length > 1
+use_livemigration = nova[:nova][:use_migration] && kvm_compute_nodes.length > 1
+
+if !docker_compute_nodes.empty? && kvm_compute_nodes.empty?
+  image_name = "cirros"
+  docker_nodes = docker_compute_nodes.map {|n| n.name}
+
+  bash "load docker image" do
+    code <<-EOH
+
+TEMP=$(mktemp -d)
+IMG_FILE=$(basename $IMAGE_URL)
+
+echo "Downloading image ... "
+wget --no-verbose $IMAGE_URL --directory-prefix=$TEMP 2>&1 || exit $?
+
+echo "Registering in glance ..."
+DOCKER_IMAGE_ID=$(glance #{insecure} image-create \
+    --name #{image_name} \
+    --container-format docker \
+    --property hypervisor_type=docker \
+    --disk-format raw \
+    --is-public True  \
+    --file $TEMP/$IMG_FILE \
+    | grep ' id ' | awk '{ print $4 }')
+
+[ -n "$DOCKER_IMAGE_ID" ] && echo "$DOCKER_IMAGE_ID" > #{docker_image_id_file}
+rm -fr $TEMP
+
+echo "Checking that deployment status ..."
+[ -f #{docker_image_id_file} ] || exit 127
+
+EOH
+    environment ({
+      'IMAGE_URL' => node[:tempest][:tempest_test_image],
+      'OS_USERNAME' => tempest_adm_user,
+      'OS_PASSWORD' => tempest_adm_pass,
+      'OS_TENANT_NAME' => tempest_comp_tenant,
+      'OS_AUTH_URL' => keystone_settings["internal_auth_url"],
+      'OS_IDENTITY_API_VERSION' => keystone_settings["api_version"],
+      'OS_USER_DOMAIN_NAME' => keystone_settings["api_version"] != "2.0" ? "Default" : "",
+      'OS_PROJECT_DOMAIN_NAME' => keystone_settings["api_version"] != "2.0" ? "Default" : "",
+      'IMAGE_URL' => node[:tempest][:tempest_test_docker_image],
+      'IMAGE_NAME' => image_name,
+      'NODES' => docker_nodes.join(" "),
+    })
+    not_if { File.exists?(docker_image_id_file) }
+  end
+
+  use_docker = true
+  use_interface_attach = false
+  use_rescue = false
+  use_suspend = false
+  # no vnc support: https://bugs.launchpad.net/nova-docker/+bug/1321818
+  use_vnc = false
+  image_regex = "^#{image_name}$"
+else
+  use_docker = false
+  use_interface_attach = true
+  use_rescue = true
+  use_suspend = true
+  use_vnc = true
+  image_regex = "^cirros-#{cirros_version}-x86_64-tempest-machine$"
+end
 
 # FIXME: should avoid search with no environment in query
 horizons = search(:node, "roles:nova_dashboard-server") || []
@@ -366,7 +433,7 @@ template "#{tempest_conf}" do
   variables(
     # general settings
     :keystone_settings => keystone_settings,
-    :machine_id_file => machine_id_file,
+    :machine_id_file => use_docker ? docker_image_id_file : machine_id_file,
     :tempest_path => node[:tempest][:tempest_path],
     :use_swift => use_swift,
     :use_horizon => use_horizon,
@@ -387,7 +454,11 @@ template "#{tempest_conf}" do
     :flavor_ref => flavor_ref,
     :alt_flavor_ref => alt_flavor_ref,
     :nova_api_v3 => nova[:nova][:enable_v3_api],
+    :use_interface_attach => use_interface_attach,
+    :use_rescue => use_rescue,
     :use_resize => use_resize,
+    :use_suspend => use_suspend,
+    :use_vnc => use_vnc,
     :use_livemigration => use_livemigration,
     # dashboard settings
     :horizon_host => horizon_host,
@@ -413,7 +484,8 @@ template "#{tempest_conf}" do
     :heat_flavor_ref => heat_flavor_ref,
     :heat_machine_id_file => heat_machine_id_file,
     # scenario settings
-    :cirros_version => File.basename(node[:tempest][:tempest_test_image]).gsub(/^cirros-/, "").gsub(/-.*/, ""),
+    :cirros_version => cirros_version,
+    :image_regex => image_regex,
     # volume settings
     :cinder_multi_backend => cinder_multi_backend,
     :cinder_backend1_name => cinder_backend1_name,
